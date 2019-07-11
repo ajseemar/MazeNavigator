@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     c = document.getElementById('canvas');
     cc = c.getContext('2d');
 
-    const MazeNavigatorDemo = new Game(c.width, c.height, 20);
+    const MazeNavigatorDemo = new Game(c.width, c.height, 16);
 
     const startDemo = () => {
         let time = Date.now();
@@ -200,7 +200,7 @@ class Game {
         cc.fillStyle = '#000';
         cc.fillRect(0, 0, c.width, c.height);
         this.maze.render();
-        // this.mazeSolver.render();
+        this.mazeSolver.render();
         if (this.mazeSolver.finished) {
             this.boids.forEach(boid => {
                 boid.render();
@@ -358,9 +358,9 @@ class Boid extends Entity {
     }
 
     flock(boids) {
-        const separation = this.separate(boids);
-        const alignment = this.align(boids);
-        const cohesion = this.cohesion(boids);
+        const separation = this.separate(boids).multiply(1.4);
+        const alignment = this.align(boids).multiply(1);
+        const cohesion = this.cohesion(boids).multiply(0.5);
 
         const netForce = new Vector()
             .add(separation)
@@ -555,10 +555,10 @@ class aStar {
     }
 
     render() {
-        // if (!this.finished) {
-        //     this.openSet.forEach(cell => cell.render('#0f0'));
-        //     this.closedSet.forEach(cell => cell.render('#f00'));
-        // }
+        if (!this.finished) {
+            this.openSet.forEach(cell => cell.render('#0f0'));
+            this.closedSet.forEach(cell => cell.render('#f00'));
+        }
         // this.path.forEach(node => {
         //     // node.render();
         //     cc.strokeStyle = "#0f0";
@@ -571,8 +571,8 @@ class aStar {
         //     cc.closePath();
         //     cc.stroke();
         // });
-        if (this.finished)
-            this.path.render();
+        // if (this.finished)
+        //     this.path.render();
         // this.cells.forEach(cell => cell.node.render());
     }
 }
