@@ -188,8 +188,9 @@ class Game {
         this.mazeSolver.update();
         if (this.mazeSolver.finished) {
             this.boids.forEach(boid => {
-                boid.follow(this.mazeSolver.path);
-                boid.separate(this.boids);
+                // boid.follow(this.mazeSolver.path);
+                // boid.separate(this.boids);
+                boid.applyBehaviors(this.mazeSolver.path, this.boids);
                 boid.update();
             });
         }
@@ -220,8 +221,8 @@ class Entity {
         this.forces = {};
     }
 
-    applyForce(force) {
-        this.acceleration.add(force);
+    applyForce(...forces) {
+        forces.forEach(force => this.acceleration.add(force));
     }
 }
 
@@ -233,6 +234,13 @@ class Boid extends Entity {
         this.perceptionRadius = this.radius * 2;
     }
 
+    applyBehaviors(path, boids) {
+        const follow = this.follow(path);
+        const flock = this.flock(boids);
+
+        this.applyForce(follow, flock);
+    }
+
     seek(target) {
         if (!target) return;
         let desired = Vector.sub(target, this.position);
@@ -240,7 +248,8 @@ class Boid extends Entity {
         desired = desired.normalize().multiply(this.maxSpeed);
         const steering = Vector.sub(desired, this.velocity);
         steering.limit(this.maxForce);
-        this.applyForce(steering);
+        // this.applyForce(steering);
+        return steering;
     }
 
     arrive(target) {
@@ -252,7 +261,8 @@ class Boid extends Entity {
             desired.setMagnitude(map(d, 0, this.perceptionRadius, 0, this.maxSpeed));
         } else desired.setMagnitude(this.maxSpeed);
         const steering = Vector.sub(desired, this.velocity).setMagnitude(this.maxForce);
-        this.applyForce(steering);
+        // this.applyForce(steering);
+        return steering;
     }
 
     follow(path) {
@@ -284,7 +294,7 @@ class Boid extends Entity {
             }
 
         }
-        this.seek(this.target);
+        return this.seek(this.target);
     }
 
     separate(boids) {
@@ -305,8 +315,59 @@ class Boid extends Entity {
             sum.setMagnitude(this.maxSpeed);
             const steering = Vector.sub(sum, this.velocity);
             steering.limit(this.maxForce);
-            this.applyForce(steering);
-        }
+            // this.applyForce(steering);
+            return steering;
+        } else return new Vector();
+    }
+
+    align(boids) {
+        const sum = new Vector();
+        let count = 0;
+        boids.forEach(boid => {
+            const dist = this.position.dist(boid.position);
+            if (dist > 0 && dist < this.perceptionRadius * 4) {
+                sum.add(boid.velocity);
+                count++;
+            }
+        });
+        if (count > 0) {
+            sum.divide(count);
+            const sumN = sum.normalize();
+            sumN.setMagnitude(this.maxSpeed);
+
+            const steering = Vector.sub(sumN, this.velocity);
+            steering.limit(this.maxForce);
+            return steering;
+        } else return new Vector();
+    }
+
+    cohesion(boids) {
+        const sum = new Vector();
+        let count = 0;
+        boids.forEach(boid => {
+            const dist = this.position.dist(boid.position);
+            if (dist > 0 && dist < this.perceptionRadius * 2) {
+                sum.add(boid.position);
+                count++;
+            }
+        });
+        if (count > 0) {
+            sum.divide(count);
+            return this.seek(sum);
+        } else return new Vector();
+    }
+
+    flock(boids) {
+        const separation = this.separate(boids);
+        const alignment = this.align(boids);
+        const cohesion = this.cohesion(boids);
+
+        const netForce = new Vector()
+            .add(separation)
+            .add(alignment)
+            .add(cohesion);
+
+        return netForce;
     }
 
     // checkBounds() {
