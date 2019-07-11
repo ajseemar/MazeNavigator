@@ -174,8 +174,12 @@ class Game {
         this.mazeSolver = new aStar(this.maze.grid);
 
         this.initialTime = Date.now();
-        this.boids = [new Boid(0, 0)];
-        setInterval(() => this.boids.push(new Boid(0, 0)), 2000);
+        this.boids = [new Boid(0, 0), new Boid(10, 0), new Boid(0, 10),];
+        setInterval(() => {
+            this.boids.push(new Boid(0, 0));
+            this.boids.push(new Boid(10, 0));
+            this.boids.push(new Boid(0, 10));
+        }, 2000);
     }
 
 
@@ -185,6 +189,7 @@ class Game {
         if (this.mazeSolver.finished) {
             this.boids.forEach(boid => {
                 boid.follow(this.mazeSolver.path);
+                boid.separate(this.boids);
                 boid.update();
             });
         }
@@ -194,7 +199,7 @@ class Game {
         cc.fillStyle = '#000';
         cc.fillRect(0, 0, c.width, c.height);
         this.maze.render();
-        this.mazeSolver.render();
+        // this.mazeSolver.render();
         if (this.mazeSolver.finished) {
             this.boids.forEach(boid => {
                 boid.render();
@@ -282,13 +287,33 @@ class Boid extends Entity {
         this.seek(this.target);
     }
 
+    separate(boids) {
+        const sum = new Vector();
+        let count = 0;
+        boids.forEach(boid => {
+            const dist = this.position.dist(boid.position);
+
+            if (dist > 0 && dist < this.perceptionRadius * 2) {
+                const diff = Vector.sub(this.position, boid.position).normalize();
+                sum.add(diff);
+                count++;
+            }
+        });
+
+        if (count > 0) {
+            sum.divide(count);
+            sum.setMagnitude(this.maxSpeed);
+            const steering = Vector.sub(sum, this.velocity);
+            steering.limit(this.maxForce);
+            this.applyForce(steering);
+        }
+    }
+
     // checkBounds() {
     //     if (this.position.x - this.radius > c.width) this.position.x = -this.radius;
     //     if (this.position.x + this.radius < 0) this.position.x = c.width + this.radius;
-    //     // if (this.position.x < 0) this.position.x = c.width;
-
-    //     // if (this.position.y > c.height) this.position.y = 0;
-    //     // if (this.position.y < 0) this.position.y = c.height;
+    //     if (this.position.y + this.radius > c.height) this.position.y = -this.radius;
+    //     if (this.position.y - this.radius < 0) this.position.y = c.height + this.radius;
     // }
 
     update(dt) {
@@ -305,11 +330,11 @@ class Boid extends Entity {
 
     render() {
         // predicted position
-        cc.fillStyle = "#f00";
-        cc.beginPath();
-        cc.arc(this.predictedPos.x, this.predictedPos.y, this.radius / 3, 0, 2 * Math.PI);
-        cc.closePath();
-        cc.fill();
+        // cc.fillStyle = "#f00";
+        // cc.beginPath();
+        // cc.arc(this.predictedPos.x, this.predictedPos.y, this.radius / 3, 0, 2 * Math.PI);
+        // cc.closePath();
+        // cc.fill();
 
         // boid
         cc.fillStyle = "#0f0";
@@ -319,18 +344,18 @@ class Boid extends Entity {
         cc.fill();
 
         // normal point on path relative to predicted pos
-        cc.fillStyle = "#0ff";
-        cc.beginPath();
-        cc.arc(this.normal.x, this.normal.y, this.radius / 3, 0, 2 * Math.PI);
-        cc.closePath();
-        cc.fill();
+        // cc.fillStyle = "#0ff";
+        // cc.beginPath();
+        // cc.arc(this.normal.x, this.normal.y, this.radius / 3, 0, 2 * Math.PI);
+        // cc.closePath();
+        // cc.fill();
 
         // target point on path boid aims to seek
-        cc.fillStyle = "#fff";
-        cc.beginPath();
-        cc.arc(this.target.x, this.target.y, this.radius / 3, 0, 2 * Math.PI);
-        cc.closePath();
-        cc.fill();
+        // cc.fillStyle = "#fff";
+        // cc.beginPath();
+        // cc.arc(this.target.x, this.target.y, this.radius / 3, 0, 2 * Math.PI);
+        // cc.closePath();
+        // cc.fill();
     }
 }
 
